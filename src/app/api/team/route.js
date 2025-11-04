@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";
 
 
+
 export async function GET(req) {
   try {
     await connectDB();
@@ -18,7 +19,9 @@ export async function GET(req) {
     const userId = decoded.id;
 
     // Fetch teams where user is a member
-    const teams = await TeamSchema.find({ members: userId }).populate("captain", "name email");
+    const teams = await TeamSchema.find({ members: userId })
+      .populate("captain")   // fetch all captain info
+      .populate("members");  // fetch all members info
 
     return NextResponse.json({ message: "Teams fetched successfully", teams }, { status: 200 });
 
@@ -29,6 +32,7 @@ export async function GET(req) {
     );
   }
 }
+
 
 export async function POST(req) {
   try {
@@ -45,6 +49,12 @@ export async function POST(req) {
 
     // Make this user captain if not already
     await UserSchema.findByIdAndUpdate(userId, { role: "captain" });
+
+    // Check if a team with the same name already exists
+    const existingTeam = await TeamSchema.findOne({ name });
+    if (existingTeam) {
+      return NextResponse.json({ message: "Team name already exists" }, { status: 400 });
+    }
 
     // Create team
     const team = await TeamSchema.create({
