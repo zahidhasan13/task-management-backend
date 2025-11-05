@@ -13,6 +13,7 @@ export default function Home() {
   const [loadingTeams, setLoadingTeams] = useState(true);
 
   const { token, user } = useSelector((state) => state.auth);
+  console.log(teams,"teamssss")
 
   // ✅ Fetch user on page load to populate Redux
   useEffect(() => {
@@ -119,7 +120,7 @@ export default function Home() {
             >
               <span>{team.name}</span>
               <span className="text-gray-500 text-sm">
-                {team.captain._id === user?.id ? "Captain" : "Member"}
+                {team.captain._id === user?._id ? "Captain" : "Member"}
               </span>
             </li>
           ))}

@@ -31,10 +31,17 @@ export async function GET(req) {
 
     const userId = decoded.id;
 
-    // ✅ Fetch teams where user is a member
-    const teams = await TeamSchema.find({ members: userId })
-      .populate("captain")   // fetch full captain info
-      .populate("members");  // fetch full member info
+   // ✅ Fetch teams where user is a member
+const teams = await TeamSchema.find({ members: userId })
+  .populate({
+    path: "captain",
+    select: "-password -__v", // exclude password and version
+  })
+  .populate({
+    path: "members",
+    select: "-password -__v", // exclude password and version
+  });
+
 
     return NextResponse.json(
       { message: "Teams fetched successfully", teams },
