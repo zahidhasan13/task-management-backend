@@ -31,6 +31,7 @@ export async function POST(req) {
         email: user.email,
         role: user.role,
       },
+      token
     });
 
     response.cookies.set("token", token, {

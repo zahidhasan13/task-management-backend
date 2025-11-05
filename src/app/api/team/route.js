@@ -5,26 +5,41 @@ import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";
 
 
-
 export async function GET(req) {
   try {
     await connectDB();
 
-    // Get token from header
-    const token = req.headers.get("authorization")?.replace("Bearer ", "");
-    if (!token)
-      return NextResponse.json({ message: "No token provided" }, { status: 401 });
+    // ✅ Get token from Authorization header
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader) {
+      return NextResponse.json(
+        { message: "No token provided" },
+        { status: 401 }
+      );
+    }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const token = authHeader.replace("Bearer ", "");
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      return NextResponse.json(
+        { message: "Invalid or expired token" },
+        { status: 401 }
+      );
+    }
+
     const userId = decoded.id;
 
-    // Fetch teams where user is a member
+    // ✅ Fetch teams where user is a member
     const teams = await TeamSchema.find({ members: userId })
-      .populate("captain")   // fetch all captain info
-      .populate("members");  // fetch all members info
+      .populate("captain")   // fetch full captain info
+      .populate("members");  // fetch full member info
 
-    return NextResponse.json({ message: "Teams fetched successfully", teams }, { status: 200 });
-
+    return NextResponse.json(
+      { message: "Teams fetched successfully", teams },
+      { status: 200 }
+    );
   } catch (error) {
     return NextResponse.json(
       { message: "Failed to fetch teams", error: error.message },
@@ -42,6 +57,7 @@ export async function POST(req) {
     
     // Get token from header
     const token = req.headers.get("authorization")?.replace("Bearer ", "");
+    console.log(req.headers,"token")
     if (!token) return NextResponse.json({ message: "No token provided" }, { status: 401 });
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
