@@ -2,14 +2,18 @@ import { NextResponse } from "next/server";
 
 export function middleware(req) {
   const token = req.cookies.get("token")?.value;
+  const pathname = req.nextUrl.pathname;
 
-  // Redirect to login if not authenticated
-  if (!token && req.nextUrl.pathname !== "/login") {
+  // Pages that do not require authentication
+  const publicPaths = ["/login", "/signup"];
+
+  // If user is NOT logged in and trying to access protected page → redirect to login
+  if (!token && !publicPaths.includes(pathname)) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // Redirect logged-in users away from login page
-  if (token && req.nextUrl.pathname === "/login") {
+  // If user IS logged in and trying to visit login or signup → redirect to home
+  if (token && publicPaths.includes(pathname)) {
     return NextResponse.redirect(new URL("/", req.url));
   }
 
@@ -19,3 +23,4 @@ export function middleware(req) {
 export const config = {
   matcher: ["/((?!_next|favicon.ico|public|api).*)"],
 };
+
