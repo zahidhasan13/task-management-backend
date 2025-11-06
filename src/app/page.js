@@ -1,11 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchTeams, createTeam, addTeamMember } from "@/redux/slices/teamSlice";
 import { setCredentials } from "@/redux/slices/authSlice";
+import TeamList from "@/components/TeamList"; // ✅ Separate Component
+import Modal from "@/components/Modal";
+import Button from "@/components/Button";
 
 export default function Home() {
   const dispatch = useDispatch();
+
   const [showTeamModal, setShowTeamModal] = useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
 
@@ -13,11 +18,8 @@ export default function Home() {
   const [memberEmail, setMemberEmail] = useState("");
   const [selectedTeam, setSelectedTeam] = useState("");
 
-  const [loading, setLoading] = useState(false);
-  const [teams, setTeams] = useState([]);
-  const [loadingTeams, setLoadingTeams] = useState(true);
-
   const { token, user } = useSelector((state) => state.auth);
+  const { teams, loading } = useSelector((state) => state.team);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -30,83 +32,38 @@ export default function Home() {
     fetchUser();
   }, [dispatch]);
 
+  // Load teams from backend
   useEffect(() => {
-    if (!token) return;
+    if (token) dispatch(fetchTeams());
+  }, [token, dispatch]);
 
-    const fetchTeams = async () => {
-      setLoadingTeams(true);
-      try {
-        const res = await fetch("/api/team", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (res.ok) setTeams(data.teams || []);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoadingTeams(false);
-      }
-    };
-
-    fetchTeams();
-  }, [token]);
-
-  // ✅ Create Team
-  const handleCreateTeam = async () => {
-    if (!teamName) return alert("Please enter a team name");
-    setLoading(true);
-    try {
-      const res = await fetch("/api/team", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name: teamName }),
-      });
-      const data = await res.json();
-      if (res.ok) {
+  const handleCreateTeam = () => {
+    if (!teamName) return alert("Enter team name");
+    dispatch(createTeam({ name: teamName }))
+      .unwrap()
+      .then(() => {
         alert("Team created ✅");
-        setTeamName("");
         setShowTeamModal(false);
-        setTeams((prev) => [...prev, data.team]);
-      } else alert(data.message);
-    } finally {
-      setLoading(false);
-    }
+        setTeamName("");
+      })
+      .catch((err) => alert(err));
   };
 
-  // ✅ Add Member to Team
-  const handleAddMember = async () => {
-    if (!memberEmail || !selectedTeam)
-      return alert("Enter email and select a team");
-
-    setLoading(true);
-    try {
-      const res = await fetch("/api/teamMember", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ memberEmail, teamId: selectedTeam }),
-      });
-      const data = await res.json();
-      console.log(data,"add")
-      if (res.ok) {
+  const handleAddMember = () => {
+    if (!memberEmail || !selectedTeam) return alert("Enter info");
+    dispatch(addTeamMember({ memberEmail, teamId: selectedTeam }))
+      .unwrap()
+      .then(() => {
         alert("Member added ✅");
+        setShowAddMemberModal(false);
         setMemberEmail("");
         setSelectedTeam("");
-        setShowAddMemberModal(false);
-      } else alert(data.message);
-    } finally {
-      setLoading(false);
-    }
+      })
+      .catch((err) => alert(err));
   };
 
   return (
     <div className="p-6">
-      {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">My Teams</h1>
 
@@ -127,30 +84,8 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Team List */}
-      {loadingTeams ? (
-        <p>Loading teams...</p>
-      ) : teams.length === 0 ? (
-        <p>No teams found.</p>
-      ) : (
-        <ul className="space-y-2">
-          {teams.map((team) => (
-            <li key={team._id} className="border p-3 rounded flex justify-between">
-              <div>
-                <p className="font-semibold">{team.name}</p>
-                <p className="text-sm text-gray-600">
-                  Members: {team.members?.length}
-                </p>
-              </div>
-              <span className="text-gray-500 text-sm">
-                Captain: {team.captain.name}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
+      <TeamList teams={teams} loading={loading} />
 
-      {/* Create Team Modal */}
       {showTeamModal && (
         <Modal title="Create Team" close={() => setShowTeamModal(false)}>
           <input
@@ -164,7 +99,6 @@ export default function Home() {
         </Modal>
       )}
 
-      {/* Add Member Modal */}
       {showAddMemberModal && (
         <Modal title="Add Team Member" close={() => setShowAddMemberModal(false)}>
           <input
@@ -174,7 +108,6 @@ export default function Home() {
             onChange={(e) => setMemberEmail(e.target.value)}
             className="w-full border p-2 mb-4"
           />
-
           <select
             className="w-full border p-2 mb-4"
             value={selectedTeam}
@@ -187,41 +120,9 @@ export default function Home() {
               </option>
             ))}
           </select>
-
           <Button label="Add Member" onClick={handleAddMember} loading={loading} />
         </Modal>
       )}
     </div>
-  );
-}
-
-// ✅ Reusable Modal Component
-function Modal({ title, children, close }) {
-  return (
-    <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
-      <div className="bg-white p-6 rounded w-96">
-        <h2 className="text-xl font-semibold mb-4">{title}</h2>
-        {children}
-        <button
-          onClick={close}
-          className="mt-4 w-full border py-2 rounded hover:bg-gray-100"
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ✅ Reusable Button
-function Button({ label, onClick, loading }) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={loading}
-      className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 disabled:opacity-50"
-    >
-      {loading ? "Please wait..." : label}
-    </button>
   );
 }

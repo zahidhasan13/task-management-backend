@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { setCredentials } from "@/redux/slices/authSlice";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function Header() {
   const dispatch = useDispatch();
@@ -41,7 +42,7 @@ export default function Header() {
 
   return (
     <header className="bg-blue-600 text-white p-4 flex justify-between items-center">
-  <h1 className="text-xl font-bold">My App</h1>
+  <Link href="/"><h1 className="text-xl font-bold">My App</h1></Link>
 
   {user ? (
     <div className="flex items-center space-x-4">
