@@ -1,11 +1,17 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { getSingleTeam } from "@/redux/slices/teamSlice";
+import { addTeamMember, getSingleTeam } from "@/redux/slices/teamSlice";
 import { useParams, useRouter } from "next/navigation";
+import Modal from "@/components/Modal";
+import Button from "@/components/Button";
 
 export default function TeamPage() {
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [memberEmail, setMemberEmail] = useState("");
+    const [selectedTeam, setSelectedTeam] = useState("");
+    const { teams } = useSelector((state) => state.team);
   const dispatch = useDispatch();
   const { slug } = useParams();
   console.log(slug,"idd") // dynamic route param
@@ -18,10 +24,24 @@ export default function TeamPage() {
     dispatch(getSingleTeam(slug));
   }, [slug, dispatch]);
 
+  const handleAddMember = () => {
+      if (!memberEmail || !selectedTeam) return alert("Enter info");
+      dispatch(addTeamMember({ memberEmail, teamId: selectedTeam }))
+        .unwrap()
+        .then(() => {
+          alert("Member added ✅");
+          setShowAddMemberModal(false);
+          setMemberEmail("");
+          setSelectedTeam("");
+        })
+        .catch((err) => alert(err));
+    };
+
   // Handle loading and errors
   if (loading) return <p className="p-6">Loading Team...</p>;
   if (error) return <p className="p-6 text-red-500">Error: {error}</p>;
   if (!singleTeam) return <p className="p-6">Team not found.</p>;
+
 
   return (
     <div className="p-6 space-y-6">
@@ -39,7 +59,7 @@ export default function TeamPage() {
           <h2 className="text-lg font-semibold">Team Members</h2>
           <button
             className="bg-green-500 px-3 py-1 text-white text-sm rounded hover:bg-green-600"
-            onClick={() => alert("Open Add Member Modal")}
+            onClick={() => setShowAddMemberModal(true)}
           >
             Add Member
           </button>
@@ -71,6 +91,31 @@ export default function TeamPage() {
       >
         Assign Task
       </button>
+
+       {showAddMemberModal && (
+               <Modal title="Add Team Member" close={() => setShowAddMemberModal(false)}>
+                 <input
+                   type="email"
+                   placeholder="Member Email"
+                   value={memberEmail}
+                   onChange={(e) => setMemberEmail(e.target.value)}
+                   className="w-full border p-2 mb-4"
+                 />
+                 <select
+                   className="w-full border p-2 mb-4"
+                   value={selectedTeam}
+                   onChange={(e) => setSelectedTeam(e.target.value)}
+                 >
+                   <option value="">Select Team</option>
+                   {teams.map((team) => (
+                     <option key={team._id} value={team._id}>
+                       {team.name}
+                     </option>
+                   ))}
+                 </select>
+                 <Button label="Add Member" onClick={handleAddMember} loading={loading} />
+               </Modal>
+             )}
     </div>
   );
 }
