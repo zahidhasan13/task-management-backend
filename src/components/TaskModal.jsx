@@ -1,16 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import Modal from "@/components/Modal";
 import Button from "@/components/Button";
+import Modal from "@/components/Modal";
+import { createTask, fetchTasks } from "@/redux/slices/taskSlice";
+import { AlignLeft, Calendar, FileText, Flag, User } from "lucide-react";
+import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { createTask } from "@/redux/slices/taskSlice";
-import { fetchTasks } from "@/redux/slices/taskSlice";
-import { FileText, AlignLeft, Flag, User, Calendar } from "lucide-react";
 
 export default function TaskModal({ show, close, teamId, members }) {
   const dispatch = useDispatch();
   const { loading } = useSelector((state) => state.task);
+
+  // ✅ Prevent crash if members is undefined
+  const safeMembers = Array.isArray(members) ? members : [];
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -35,10 +37,7 @@ export default function TaskModal({ show, close, teamId, members }) {
     )
       .unwrap()
       .then(() => {
-        alert("✅ Task Created Successfully");
-
         dispatch(fetchTasks(teamId));
-
         close();
 
         setTitle("");
@@ -46,6 +45,8 @@ export default function TaskModal({ show, close, teamId, members }) {
         setPriority("medium");
         setMemberId("");
         setDueDate("");
+
+        alert("✅ Task Created Successfully");
       })
       .catch((err) => {
         console.error("❌ Task creation failed:", err);
@@ -57,7 +58,7 @@ export default function TaskModal({ show, close, teamId, members }) {
     const colors = {
       low: "text-green-600 bg-green-50 border-green-200",
       medium: "text-amber-600 bg-amber-50 border-amber-200",
-      high: "text-red-600 bg-red-50 border-red-200"
+      high: "text-red-600 bg-red-50 border-red-200",
     };
     return colors[value] || "";
   };
@@ -77,7 +78,7 @@ export default function TaskModal({ show, close, teamId, members }) {
               placeholder="Enter task title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
 
@@ -92,7 +93,7 @@ export default function TaskModal({ show, close, teamId, members }) {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none"
             />
           </div>
 
@@ -103,7 +104,7 @@ export default function TaskModal({ show, close, teamId, members }) {
               Priority Level
             </label>
             <select
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
               value={priority}
               onChange={(e) => setPriority(e.target.value)}
             >
@@ -111,7 +112,12 @@ export default function TaskModal({ show, close, teamId, members }) {
               <option value="medium">🟡 Medium Priority</option>
               <option value="high">🔴 High Priority</option>
             </select>
-            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${getPriorityColor(priority)}`}>
+
+            <div
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${getPriorityColor(
+                priority
+              )}`}
+            >
               <Flag className="w-3 h-3" />
               {priority.charAt(0).toUpperCase() + priority.slice(1)} Priority
             </div>
@@ -124,12 +130,13 @@ export default function TaskModal({ show, close, teamId, members }) {
               Assign To
             </label>
             <select
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
               value={memberId}
               onChange={(e) => setMemberId(e.target.value)}
             >
               <option value="">Select a team member</option>
-              {members.map((m) => (
+
+              {safeMembers.map((m) => (
                 <option key={m._id} value={m._id}>
                   {m.name} • {m.email}
                 </option>
@@ -147,11 +154,10 @@ export default function TaskModal({ show, close, teamId, members }) {
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
 
-          {/* Submit Button */}
           <div className="pt-2">
             <Button label="Create Task" onClick={handleCreateTask} loading={loading} />
           </div>

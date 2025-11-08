@@ -22,6 +22,7 @@ export default function Home() {
   const { token, user } = useSelector((state) => state.auth);
   const { teams, loading } = useSelector((state) => state.team);
 
+  // ✅ Fetch logged-in user and token
   useEffect(() => {
     const fetchUser = async () => {
       const res = await fetch("/api/auth/me", { credentials: "include" });
@@ -33,11 +34,12 @@ export default function Home() {
     fetchUser();
   }, [dispatch]);
 
-  // Load teams from backend
+  // Load teams
   useEffect(() => {
     if (token) dispatch(fetchTeams());
   }, [token, dispatch]);
 
+  // Create team
   const handleCreateTeam = () => {
     if (!teamName) return alert("Enter team name");
     dispatch(createTeam({ name: teamName }))
@@ -50,6 +52,7 @@ export default function Home() {
       .catch((err) => alert(err));
   };
 
+  // Add team member
   const handleAddMember = () => {
     if (!memberEmail || !selectedTeam) return alert("Enter info");
     dispatch(addTeamMember({ memberEmail, teamId: selectedTeam }))
@@ -66,7 +69,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header Section */}
+        {/* Header */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex items-center gap-3">
@@ -82,13 +85,16 @@ export default function Home() {
             </div>
 
             <div className="flex gap-3">
-              <button
-                className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 px-5 py-2.5 text-white rounded-lg font-medium transition-all duration-200 shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:scale-105"
-                onClick={() => setShowAddMemberModal(true)}
-              >
-                <UserPlus className="w-4 h-4" />
-                Add Member
-              </button>
+              {/* ✅ Show Add Member only for captain */}
+              {user?.role === "captain" && (
+                <button
+                  className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 px-5 py-2.5 text-white rounded-lg font-medium transition-all duration-200 shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:scale-105"
+                  onClick={() => setShowAddMemberModal(true)}
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Add Member
+                </button>
+              )}
 
               <button
                 className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-5 py-2.5 text-white rounded-lg font-medium transition-all duration-200 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:scale-105"
@@ -137,7 +143,7 @@ export default function Home() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Select Team</label>
                 <select
@@ -153,7 +159,7 @@ export default function Home() {
                   ))}
                 </select>
               </div>
-              
+
               <Button label="Add Member" onClick={handleAddMember} loading={loading} />
             </div>
           </Modal>
