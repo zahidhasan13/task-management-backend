@@ -28,19 +28,19 @@ const taskSchema = new mongoose.Schema(
     assignedTo: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true, // Member who will work on this task
+      required: true, 
     },
 
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true, // Captain who assigned the task
+      required: true, 
     },
 
     team: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Team",
-      required: true, // The team this task belongs to
+      required: true, 
     },
 
     dueDate: {

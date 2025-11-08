@@ -1,68 +1,81 @@
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
 import jwt from "jsonwebtoken";
-import TaskSchema from "@/models/TaskSchema";
-import TeamSchema from "@/models/TeamSchema";
+import { connectDB } from "@/lib/db";
+import Task from "@/models/TaskSchema";
 
 export async function GET(req) {
   try {
     await connectDB();
 
-    const token = req.headers.get("authorization")?.replace("Bearer ", "");
-    if (!token) return NextResponse.json({ message: "No token provided" }, { status: 401 });
+    const token = req.headers.get("authorization")?.split(" ")[1];
+    if (!token) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.id;
+    try {
+      jwt.verify(token, process.env.JWT_SECRET);
+    } catch {
+      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+    }
 
-    // Get all tasks assigned to this member
-    const tasks = await TaskSchema.find({ assignedTo: userId })
-      .populate("assignedBy", "name email") // captain info
-      .populate("team", "name"); // team info
+    const { searchParams } = new URL(req.url);
+    const teamId = searchParams.get("teamId");
 
-    return NextResponse.json({ message: "Tasks fetched successfully", tasks }, { status: 200 });
+    if (!teamId) {
+      return NextResponse.json({ message: "teamId is required" }, { status: 400 });
+    }
+
+    const tasks = await Task.find({ team: teamId })
+      .populate("assignedTo", "name email")
+      .populate("createdBy", "name email")
+      .populate("team", "name");
+
+    return NextResponse.json({ tasks }, { status: 200 });
 
   } catch (error) {
-    return NextResponse.json({ message: "Failed to fetch tasks", error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { message: "Failed to fetch tasks", error: error.message },
+      { status: 500 }
+    );
   }
 }
-
 
 export async function POST(req) {
   try {
     await connectDB();
 
-    const { teamId, memberId, title, description, priority, dueDate } = await req.json();
+    const token = req.headers.get("authorization")?.split(" ")[1];
+    if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-    const token = req.headers.get("authorization")?.replace("Bearer ", "");
-    if (!token) return NextResponse.json({ message: "No token provided" }, { status: 401 });
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch {
+      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+    }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.id;
+    const { title, description, priority, dueDate, team, assignedTo } = await req.json();
 
-    const team = await TeamSchema.findById(teamId);
-    if (!team) return NextResponse.json({ message: "Team not found" }, { status: 404 });
+    if (!title || !description || !team || !assignedTo || !dueDate) {
+      return NextResponse.json({ message: "All fields are required" }, { status: 400 });
+    }
 
-    // Only captain can assign tasks
-    if (team.captain.toString() !== userId)
-      return NextResponse.json({ message: "Only captain can assign tasks" }, { status: 403 });
-
-    // Check if member belongs to team
-    if (!team.members.includes(memberId))
-      return NextResponse.json({ message: "Member not in team" }, { status: 400 });
-
-    const task = await TaskSchema.create({
+    const task = await Task.create({
       title,
       description,
       priority,
-      assignedTo: memberId,
-      createdBy: userId,
-      team: teamId,
       dueDate,
+      team,
+      assignedTo,
+      createdBy: decoded.id,
     });
 
-    return NextResponse.json({ message: "Task assigned successfully", task }, { status: 201 });
+    return NextResponse.json({ task }, { status: 201 });
 
   } catch (error) {
-    return NextResponse.json({ message: "Failed to assign task", error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { message: "Failed to create task", error: error.message },
+      { status: 500 }
+    );
   }
 }
