@@ -5,13 +5,21 @@ export const fetchTasks = createAsyncThunk(
   "task/fetchTasks",
   async (teamId, { rejectWithValue, getState }) => {
     try {
+      // ✅ Get token from Redux
       const token = getState().auth.token;
 
+      if (!token) {
+        return rejectWithValue("No authentication token found. Please log in.");
+      }
+
       const res = await fetch(`/api/task?teamId=${teamId}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`, // ✅ MUST send header
+        },
       });
 
       const data = await res.json();
+
       if (!res.ok) return rejectWithValue(data.message);
 
       return data.tasks;
@@ -20,6 +28,8 @@ export const fetchTasks = createAsyncThunk(
     }
   }
 );
+
+
 
 // Create task
 export const createTask = createAsyncThunk(

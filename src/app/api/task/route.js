@@ -12,23 +12,37 @@ export async function GET(req) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
+    let decoded;
     try {
-      jwt.verify(token, process.env.JWT_SECRET);
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
     } catch {
       return NextResponse.json({ message: "Invalid token" }, { status: 401 });
     }
 
     const { searchParams } = new URL(req.url);
     const teamId = searchParams.get("teamId");
+    const userId = decoded.id; // Logged-in user
 
     if (!teamId) {
       return NextResponse.json({ message: "teamId is required" }, { status: 400 });
     }
 
-    const tasks = await Task.find({ team: teamId })
-      .populate("assignedTo", "name email")
-      .populate("createdBy", "name email")
-      .populate("team", "name");
+    let tasks;
+
+    // ✅ If Captain → show all team tasks
+    if (decoded.role === "captain") {
+      tasks = await Task.find({ team: teamId })
+        .populate("assignedTo", "name email")
+        .populate("createdBy", "name email")
+        .populate("team", "name");
+    } 
+    // ✅ If Team Member → show only tasks assigned to them
+    else {
+      tasks = await Task.find({ team: teamId, assignedTo: userId })
+        .populate("assignedTo", "name email")
+        .populate("createdBy", "name email")
+        .populate("team", "name");
+    }
 
     return NextResponse.json({ tasks }, { status: 200 });
 
@@ -39,6 +53,7 @@ export async function GET(req) {
     );
   }
 }
+
 
 export async function POST(req) {
   try {
