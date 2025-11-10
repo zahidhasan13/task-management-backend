@@ -1,8 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
-/* ============================
-   FETCH TASKS (GET /api/task)
-===============================*/
 export const fetchTasks = createAsyncThunk(
   "task/fetchTasks",
   async (teamId, { rejectWithValue, getState }) => {
@@ -24,15 +21,11 @@ export const fetchTasks = createAsyncThunk(
   }
 );
 
-/* ============================
-   CREATE TASK (POST /api/task)
-===============================*/
 export const createTask = createAsyncThunk(
   "task/createTask",
   async (taskData, { rejectWithValue, getState }) => {
     try {
       const token = getState().auth.token;
-
       const res = await fetch(`/api/task`, {
         method: "POST",
         headers: {
@@ -52,16 +45,11 @@ export const createTask = createAsyncThunk(
   }
 );
 
-/* ==========================================
-   UPDATE TASK STATUS (PATCH /api/task/:id)
-=============================================*/
 export const updateTask = createAsyncThunk(
   "task/updateTask",
   async ({ taskId, updates }, { rejectWithValue, getState }) => {
     try {
       const token = getState().auth.token;
-
-      // Build URL with search parameters
       const params = new URLSearchParams();
       Object.keys(updates).forEach(key => {
         if (updates[key] !== undefined && updates[key] !== null) {
@@ -69,14 +57,9 @@ export const updateTask = createAsyncThunk(
         }
       });
 
-      console.log('Updating task:', taskId, 'with params:', params.toString());
-
       const res = await fetch(`/api/task/${taskId}?${params.toString()}`, {
         method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        // Remove Content-Type since we're using URL params, not JSON body
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       const data = await res.json();
@@ -89,15 +72,11 @@ export const updateTask = createAsyncThunk(
   }
 );
 
-/* ==========================================
-   DELETE TASK (DELETE /api/task/:id)
-=============================================*/
 export const deleteTask = createAsyncThunk(
   "task/deleteTask",
   async (taskId, { rejectWithValue, getState }) => {
     try {
       const token = getState().auth.token;
-
       const res = await fetch(`/api/task/${taskId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
@@ -113,9 +92,6 @@ export const deleteTask = createAsyncThunk(
   }
 );
 
-/* ============================
-        SLICE
-===============================*/
 const taskSlice = createSlice({
   name: "task",
   initialState: {
@@ -126,10 +102,9 @@ const taskSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-
-      // Fetch tasks
       .addCase(fetchTasks.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(fetchTasks.fulfilled, (state, action) => {
         state.loading = false;
@@ -139,20 +114,14 @@ const taskSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-
-      // Create task
       .addCase(createTask.fulfilled, (state, action) => {
         state.tasks.push(action.payload);
       })
-
-      // Update task
       .addCase(updateTask.fulfilled, (state, action) => {
         state.tasks = state.tasks.map((task) =>
           task._id === action.payload._id ? action.payload : task
         );
       })
-
-      // Delete task
       .addCase(deleteTask.fulfilled, (state, action) => {
         state.tasks = state.tasks.filter((task) => task._id !== action.payload);
       });

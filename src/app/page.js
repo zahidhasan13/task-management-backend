@@ -90,17 +90,6 @@ export default function Home() {
             </div>
 
             <div className="flex gap-3">
-              {/* ✅ Show Add Member only for captain */}
-              {user?.role === "captain" && (
-                <button
-                  className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 px-5 py-2.5 text-white rounded-lg font-medium transition-all duration-200 shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:scale-105"
-                  onClick={() => setShowAddMemberModal(true)}
-                >
-                  <UserPlus className="w-4 h-4" />
-                  Add Member
-                </button>
-              )}
-
               <button
                 className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-5 py-2.5 text-white rounded-lg font-medium transition-all duration-200 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:scale-105"
                 onClick={() => setShowTeamModal(true)}
