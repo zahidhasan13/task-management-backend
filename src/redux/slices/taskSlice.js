@@ -12,11 +12,11 @@ export const fetchTasks = createAsyncThunk(
       });
 
       const data = await res.json();
-      if (!res.ok) return rejectWithValue(data.message);
+      if (!res.ok) return rejectWithValue(data?.message);
 
-      return data.tasks;
+      return data?.tasks;
     } catch (err) {
-      return rejectWithValue(err.message);
+      return rejectWithValue(err?.message);
     }
   }
 );

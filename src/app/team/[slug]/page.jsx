@@ -23,8 +23,8 @@ export default function TeamPage() {
   const { slug } = useParams();
 
   const { singleTeam, loading, error } = useSelector((state) => state.team);
-  const { tasks } = useSelector((state) => state.task);
   const { user } = useSelector((state) => state.auth);
+  const { tasks } = useSelector((state) => state.task);
 
   useEffect(() => {
     if (slug) dispatch(getSingleTeam(slug));
@@ -36,6 +36,8 @@ export default function TeamPage() {
 
   const isCaptain = () => user?._id === singleTeam?.captain?._id;
   const isTaskAssignee = (task) => user?._id === task.assignedTo?._id;
+
+  const getMemberTasks = (memberId) => tasks.filter((task) => task.assignedTo?._id === memberId);
 
   const handleDeleteMember = (memberId) => {
     dispatch(deleteTeamMember({ memberId, teamId: singleTeam._id }));
@@ -92,8 +94,7 @@ export default function TeamPage() {
       .catch((err) => alert(`Error: ${err}`));
   };
 
-  const getMemberTasks = (memberId) =>
-    tasks.filter((task) => task.assignedTo?._id === memberId);
+  
 
   const getPriorityColor = (p) => {
     const colors = {
