@@ -98,3 +98,82 @@ export async function POST(req) {
     );
   }
 }
+
+// Patch
+export async function PATCH(req) {
+  try {
+    await connectDB();
+
+    // Get data from request body
+    const { teamId, name } = await req.json();
+    if (!teamId || !name)
+      return NextResponse.json({ message: "teamId and name are required" }, { status: 400 });
+
+    // Get token
+    const token = req.headers.get("authorization")?.replace("Bearer ", "");
+    if (!token)
+      return NextResponse.json({ message: "No token provided" }, { status: 401 });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.id;
+
+    // Find team
+    const team = await TeamSchema.findById(teamId);
+    if (!team)
+      return NextResponse.json({ message: "Team not found" }, { status: 404 });
+
+    // Only captain can update
+    if (team.captain.toString() !== userId)
+      return NextResponse.json({ message: "Only captain can update team" }, { status: 403 });
+
+    // Update name
+    team.name = name;
+    await team.save();
+
+    return NextResponse.json({ message: "Team updated successfully", team }, { status: 200 });
+  } catch (error) {
+    console.error("PATCH team error:", error);
+    return NextResponse.json(
+      { message: "Team update failed", error: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+
+// Delte
+export async function DELETE(req) {
+  try {
+    await connectDB();
+
+    // Get data from request body
+    const { teamId } = await req.json();
+    if (!teamId) return NextResponse.json({ message: "No teamId provided" }, { status: 400 });
+
+    console.log("Deleting team:", teamId);
+
+    // Get token
+    const token = req.headers.get("authorization")?.replace("Bearer ", "");
+    if (!token) return NextResponse.json({ message: "No token provided" }, { status: 401 });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.id;
+
+    // Find team
+    const team = await TeamSchema.findById(teamId);
+    if (!team) return NextResponse.json({ message: "Team not found" }, { status: 404 });
+
+    // Only captain can delete
+    if (team.captain.toString() !== userId) {
+      return NextResponse.json({ message: "Only captain can delete team" }, { status: 403 });
+    }
+
+    // Delete the team
+    await TeamSchema.findByIdAndDelete(teamId);
+
+    return NextResponse.json({ message: "Team deleted successfully", teamId }, { status: 200 });
+  } catch (error) {
+    console.error("DELETE team error:", error);
+    return NextResponse.json({ message: "Team deletion failed", error: error.message }, { status: 500 });
+  }
+}

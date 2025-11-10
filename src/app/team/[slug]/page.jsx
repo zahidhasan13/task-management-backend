@@ -1,15 +1,30 @@
 "use client";
 
+import Button from "@/components/Button";
+import Modal from "@/components/Modal";
+import TaskModal from "@/components/TaskModal";
+import UpdateTaskModal from "@/components/UpdateTaskModal";
+import { deleteTask, fetchTasks, updateTask } from "@/redux/slices/taskSlice";
+import {
+  addTeamMember,
+  deleteTeamMember,
+  getSingleTeam,
+} from "@/redux/slices/teamSlice";
+import {
+  AlertCircle,
+  Calendar,
+  ChevronDown,
+  ChevronUp,
+  Crown,
+  Edit2,
+  ListTodo,
+  Trash2,
+  UserPlus,
+  Users,
+} from "lucide-react";
+import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { addTeamMember, getSingleTeam } from "@/redux/slices/teamSlice";
-import { useParams } from "next/navigation";
-import Modal from "@/components/Modal";
-import Button from "@/components/Button";
-import TaskModal from "@/components/TaskModal";
-import { fetchTasks, deleteTask, updateTask } from "@/redux/slices/taskSlice";
-import { Users, Crown, UserPlus, ListTodo, ChevronDown, ChevronUp, Calendar, AlertCircle, Edit2, Trash2 } from "lucide-react";
-import UpdateTaskModal from "@/components/UpdateTaskModal";
 
 export default function TeamPage() {
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
@@ -18,7 +33,6 @@ export default function TeamPage() {
   const [memberEmail, setMemberEmail] = useState("");
   const [expandedMember, setExpandedMember] = useState(null);
   const [editingTask, setEditingTask] = useState(null);
-  
 
   const dispatch = useDispatch();
   const { slug } = useParams();
@@ -38,9 +52,15 @@ export default function TeamPage() {
   const isCaptain = () => user?._id === singleTeam?.captain?._id;
   const isTaskAssignee = (task) => user?._id === task.assignedTo?._id;
 
+  const handleDeleteMember = (memberId) => {
+    console.log("Incoming:", singleTeam._id, memberId, user._id);
+
+    dispatch(deleteTeamMember({ memberId, teamId: singleTeam._id }));
+  };
+
   const handleAddMember = () => {
     if (!memberEmail) return alert("Enter member email");
-    dispatch(addTeamMember({ memberEmail, teamId: singleTeam._id }))
+    dispatch(addTeamMember({teamId: singleTeam._id, memberEmail }))
       .unwrap()
       .then(() => {
         alert("✅ Member added");
@@ -89,7 +109,8 @@ export default function TeamPage() {
       .catch((err) => alert(`Error: ${err}`));
   };
 
-  const getMemberTasks = (memberId) => tasks.filter((task) => task.assignedTo?._id === memberId);
+  const getMemberTasks = (memberId) =>
+    tasks.filter((task) => task.assignedTo?._id === memberId);
 
   const getPriorityColor = (p) => {
     const colors = {
@@ -156,10 +177,17 @@ export default function TeamPage() {
               <Users className="w-8 h-8 text-white" />
             </div>
             <div className="flex-1">
-              <h1 className="text-3xl font-bold text-gray-900">{singleTeam.name}</h1>
+              <h1 className="text-3xl font-bold text-gray-900">
+                {singleTeam.name}
+              </h1>
               <div className="flex items-center gap-2 mt-1 text-gray-600">
                 <Crown className="w-4 h-4 text-amber-500" />
-                <span className="text-sm">Captain: <span className="font-semibold">{singleTeam.captain?.name}</span></span>
+                <span className="text-sm">
+                  Captain:{" "}
+                  <span className="font-semibold">
+                    {singleTeam.captain?.name}
+                  </span>
+                </span>
               </div>
             </div>
           </div>
@@ -171,15 +199,26 @@ export default function TeamPage() {
               <Users className="w-6 h-6 text-blue-600" />
               Team Members
             </h2>
-            {isCaptain() && (
-              <button
-                className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 px-4 py-2 text-white rounded-lg font-medium transition-all duration-200 shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:scale-105"
-                onClick={() => setShowAddMemberModal(true)}
-              >
-                <UserPlus className="w-4 h-4" />
-                Add Member
-              </button>
-            )}
+            <div className="flex gap-5">
+              {isCaptain() && (
+                <button
+                  className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 px-4 py-2 text-white rounded-lg font-medium transition-all duration-200 shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:scale-105"
+                  onClick={() => setShowAddMemberModal(true)}
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Add Member
+                </button>
+              )}
+              {isCaptain() && (
+                <button
+                  className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:scale-105"
+                  onClick={() => setShowTaskModal(true)}
+                >
+                  <ListTodo className="w-5 h-5" />
+                  Assign Task
+                </button>
+              )}
+            </div>
           </div>
 
           {!singleTeam.members || singleTeam.members.length === 0 ? (
@@ -192,61 +231,142 @@ export default function TeamPage() {
           ) : (
             <div className="space-y-3">
               {singleTeam.members.map((m) => (
-                <div key={m._id} className="border border-gray-200 rounded-xl overflow-hidden hover:border-blue-300 transition-all duration-200">
-                  <div className="p-4 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors" onClick={() => setExpandedMember(expandedMember === m._id ? null : m._id)}>
+                <div
+                  key={m._id}
+                  className="border border-gray-200 rounded-xl overflow-hidden hover:border-blue-300 transition-all duration-200"
+                >
+                  {/* Member Header */}
+                  <div
+                    className="p-4 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
+                    onClick={() =>
+                      setExpandedMember(expandedMember === m._id ? null : m._id)
+                    }
+                  >
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold">
-                          {m.name.charAt(0).toUpperCase()}
+                          {(m.name?.charAt(0) || "?").toUpperCase()}
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-900">{m.name}</p>
+                          <p className="font-semibold text-gray-900">
+                            {m.name}
+                          </p>
                           <p className="text-sm text-gray-600">{m.email}</p>
                         </div>
                       </div>
+
                       <div className="flex items-center gap-3">
-                        <span className="text-sm text-gray-500 bg-white px-3 py-1 rounded-full">{getMemberTasks(m._id).length} tasks</span>
-                        {expandedMember === m._id ? <ChevronUp className="w-5 h-5 text-blue-600" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+                        <span className="text-sm text-gray-500 bg-white px-3 py-1 rounded-full">
+                          {getMemberTasks(m._id).length} tasks
+                        </span>
+
+                        {/* ✅ Show Remove Member Button Only for Captain */}
+                        {isCaptain() && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteMember(m._id);
+                            }}
+                            className="text-xs bg-red-100 text-red-600 hover:bg-red-200 px-3 py-1 rounded-lg transition-colors border border-red-200"
+                          >
+                            Remove
+                          </button>
+                        )}
+
+                        {expandedMember === m._id ? (
+                          <ChevronUp className="w-5 h-5 text-blue-600" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5 text-gray-400" />
+                        )}
                       </div>
                     </div>
                   </div>
 
+                  {/* Expanded Task List */}
                   {expandedMember === m._id && (
                     <div className="p-4 bg-white border-t">
                       {getMemberTasks(m._id).length === 0 ? (
-                        <p className="text-sm text-gray-500 text-center py-4">No tasks assigned.</p>
+                        <p className="text-sm text-gray-500 text-center py-4">
+                          No tasks assigned.
+                        </p>
                       ) : (
                         <div className="space-y-3">
                           {getMemberTasks(m._id).map((task) => (
-                            <div key={task._id} className="p-4 border border-gray-200 rounded-lg bg-gradient-to-br from-white to-gray-50 hover:shadow-md transition-shadow">
+                            <div
+                              key={task._id}
+                              className="p-4 border border-gray-200 rounded-lg bg-gradient-to-br from-white to-gray-50 hover:shadow-md transition-shadow"
+                            >
                               <div className="flex items-start justify-between mb-2">
-                                <h4 className="font-semibold text-gray-900 flex-1">{task.title}</h4>
+                                <h4 className="font-semibold text-gray-900 flex-1">
+                                  {task.title}
+                                </h4>
+
                                 {isCaptain() && (
                                   <div className="flex items-center gap-2 ml-3">
-                                    <button onClick={() => handleEditTask(task)} className="p-1.5 hover:bg-blue-100 rounded-lg transition-colors" title="Edit task">
+                                    <button
+                                      onClick={() => handleEditTask(task)}
+                                      className="p-1.5 hover:bg-blue-100 rounded-lg transition-colors"
+                                      title="Edit task"
+                                    >
                                       <Edit2 className="w-4 h-4 text-blue-600" />
                                     </button>
-                                    <button onClick={() => handleDeleteTask(task._id)} className="p-1.5 hover:bg-red-100 rounded-lg transition-colors" title="Delete task">
+                                    <button
+                                      onClick={() => handleDeleteTask(task._id)}
+                                      className="p-1.5 hover:bg-red-100 rounded-lg transition-colors"
+                                      title="Delete task"
+                                    >
                                       <Trash2 className="w-4 h-4 text-red-600" />
                                     </button>
                                   </div>
                                 )}
                               </div>
-                              <p className="text-sm text-gray-700 mb-3">{task.description}</p>
-                              <div className="flex flex-wrap items-center gap-2 mb-3">
-                                <span className={`text-xs px-3 py-1 rounded-full font-medium border ${getPriorityColor(task.priority)}`}>{task.priority}</span>
-                                <span className={`text-xs px-3 py-1 rounded-full font-medium border ${getStatusColor(task.status)}`}>{task.status}</span>
-                                <span className="text-xs text-gray-500 flex items-center gap-1">
-                                  <Calendar className="w-3 h-3" />
-                                  {new Date(task.dueDate).toLocaleDateString()}
-                                </span>
-                              </div>
+
+                              <p className="text-sm text-gray-700 mb-3">
+                                {task.description}
+                              </p>
+
+                              {/* Task Status Controls */}
                               {(isCaptain() || isTaskAssignee(task)) && (
                                 <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-200">
-                                  <button onClick={() => handleStatusChange(task._id, "pending")} disabled={task.status === "pending"} className="text-xs px-3 py-1.5 rounded-lg font-medium bg-yellow-100 text-yellow-700 hover:bg-yellow-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-yellow-200">Pending</button>
-                                  <button onClick={() => handleStatusChange(task._id, "in_progress")} disabled={task.status === "in_progress"} className="text-xs px-3 py-1.5 rounded-lg font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-blue-200">In Progress</button>
-                                  <button onClick={() => handleStatusChange(task._id, "completed")} disabled={task.status === "completed"} className="text-xs px-3 py-1.5 rounded-lg font-medium bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-green-200">Completed</button>
-                                  <button onClick={() => handleStatusChange(task._id, "over_due")} disabled={task.status === "over_due"} className="text-xs px-3 py-1.5 rounded-lg font-medium bg-purple-100 text-purple-700 hover:bg-purple-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-purple-200">Over</button>
+                                  <button
+                                    onClick={() =>
+                                      handleStatusChange(task._id, "pending")
+                                    }
+                                    disabled={task.status === "pending"}
+                                    className="text-xs px-3 py-1.5 rounded-lg font-medium bg-yellow-100 text-yellow-700 hover:bg-yellow-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-yellow-200"
+                                  >
+                                    Pending
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      handleStatusChange(
+                                        task._id,
+                                        "in_progress"
+                                      )
+                                    }
+                                    disabled={task.status === "in_progress"}
+                                    className="text-xs px-3 py-1.5 rounded-lg font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-blue-200"
+                                  >
+                                    In Progress
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      handleStatusChange(task._id, "completed")
+                                    }
+                                    disabled={task.status === "completed"}
+                                    className="text-xs px-3 py-1.5 rounded-lg font-medium bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-green-200"
+                                  >
+                                    Completed
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      handleStatusChange(task._id, "over_due")
+                                    }
+                                    disabled={task.status === "over_due"}
+                                    className="text-xs px-3 py-1.5 rounded-lg font-medium bg-purple-100 text-purple-700 hover:bg-purple-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-purple-200"
+                                  >
+                                    Over Due
+                                  </button>
                                 </div>
                               )}
                             </div>
@@ -261,41 +381,72 @@ export default function TeamPage() {
           )}
         </div>
 
-        {isCaptain() && (
-          <button className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:scale-105" onClick={() => setShowTaskModal(true)}>
-            <ListTodo className="w-5 h-5" />
-            Assign Task
-          </button>
-        )}
-
         {showAddMemberModal && (
-          <Modal title={`Add Member to ${singleTeam.name}`} close={() => setShowAddMemberModal(false)}>
+          <Modal
+            title={`Add Member to ${singleTeam.name}`}
+            close={() => setShowAddMemberModal(false)}
+          >
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Member Email</label>
-                <input type="email" placeholder="Enter member email" value={memberEmail} onChange={(e) => setMemberEmail(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all" />
+                <label className="text-sm font-medium text-gray-700">
+                  Member Email
+                </label>
+                <input
+                  type="email"
+                  placeholder="Enter member email"
+                  value={memberEmail}
+                  onChange={(e) => setMemberEmail(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+                />
               </div>
-              <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">Team: <span className="font-semibold text-gray-900">{singleTeam.name}</span></p>
-              <Button label="Add Member" onClick={handleAddMember} loading={loading} />
+              <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                Team:{" "}
+                <span className="font-semibold text-gray-900">
+                  {singleTeam.name}
+                </span>
+              </p>
+              <Button
+                label="Add Member"
+                onClick={handleAddMember}
+                loading={loading}
+              />
             </div>
           </Modal>
         )}
 
-        {showTaskModal && <TaskModal show={showTaskModal} close={() => setShowTaskModal(false)} teamId={singleTeam._id} members={singleTeam.members} />}
+        {showTaskModal && (
+          <TaskModal
+            show={showTaskModal}
+            close={() => setShowTaskModal(false)}
+            teamId={singleTeam._id}
+            members={singleTeam.members}
+          />
+        )}
 
         {showEditTaskModal && editingTask && (
-          <TaskModal show={showEditTaskModal} close={() => { setShowEditTaskModal(false); setEditingTask(null); }} teamId={singleTeam._id} members={singleTeam.members} editMode={true} existingTask={editingTask} onUpdate={handleUpdateTask} />
+          <TaskModal
+            show={showEditTaskModal}
+            close={() => {
+              setShowEditTaskModal(false);
+              setEditingTask(null);
+            }}
+            teamId={singleTeam._id}
+            members={singleTeam.members}
+            editMode={true}
+            existingTask={editingTask}
+            onUpdate={handleUpdateTask}
+          />
         )}
         {showEditTaskModal && editingTask && (
-  <UpdateTaskModal
-    show={showEditTaskModal}
-    close={() => {
-      setShowEditTaskModal(false);
-      setEditingTask(null);
-    }}
-    task={editingTask}
-  />
-)}
+          <UpdateTaskModal
+            show={showEditTaskModal}
+            close={() => {
+              setShowEditTaskModal(false);
+              setEditingTask(null);
+            }}
+            task={editingTask}
+          />
+        )}
       </div>
     </div>
   );

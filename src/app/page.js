@@ -2,7 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchTeams, createTeam, addTeamMember } from "@/redux/slices/teamSlice";
+import {
+  fetchTeams,
+  createTeam,
+  addTeamMember,
+} from "@/redux/slices/teamSlice";
 import { setCredentials } from "@/redux/slices/authSlice";
 import TeamList from "@/components/TeamList";
 import Modal from "@/components/Modal";
@@ -20,6 +24,7 @@ export default function Home() {
   const [selectedTeam, setSelectedTeam] = useState("");
 
   const { token, user } = useSelector((state) => state.auth);
+  console.log(user,"user")
   const { teams, loading } = useSelector((state) => state.team);
 
   // ✅ Fetch logged-in user and token
@@ -108,14 +113,20 @@ export default function Home() {
         </div>
 
         {/* Teams List */}
-        <TeamList teams={teams} loading={loading} />
+        <TeamList
+          teams={teams}
+          loading={loading}
+          currentUserId={user?._id}
+        />
 
         {/* Create Team Modal */}
         {showTeamModal && (
           <Modal title="Create Team" close={() => setShowTeamModal(false)}>
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Team Name</label>
+                <label className="text-sm font-medium text-gray-700">
+                  Team Name
+                </label>
                 <input
                   type="text"
                   placeholder="Enter team name"
@@ -124,17 +135,26 @@ export default function Home() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                 />
               </div>
-              <Button label="Create" onClick={handleCreateTeam} loading={loading} />
+              <Button
+                label="Create"
+                onClick={handleCreateTeam}
+                loading={loading}
+              />
             </div>
           </Modal>
         )}
 
         {/* Add Member Modal */}
         {showAddMemberModal && (
-          <Modal title="Add Team Member" close={() => setShowAddMemberModal(false)}>
+          <Modal
+            title="Add Team Member"
+            close={() => setShowAddMemberModal(false)}
+          >
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Member Email</label>
+                <label className="text-sm font-medium text-gray-700">
+                  Member Email
+                </label>
                 <input
                   type="email"
                   placeholder="Enter member email"
@@ -145,7 +165,9 @@ export default function Home() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Select Team</label>
+                <label className="text-sm font-medium text-gray-700">
+                  Select Team
+                </label>
                 <select
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all bg-white"
                   value={selectedTeam}
@@ -160,7 +182,11 @@ export default function Home() {
                 </select>
               </div>
 
-              <Button label="Add Member" onClick={handleAddMember} loading={loading} />
+              <Button
+                label="Add Member"
+                onClick={handleAddMember}
+                loading={loading}
+              />
             </div>
           </Modal>
         )}
