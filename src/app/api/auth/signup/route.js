@@ -1,25 +1,37 @@
-import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import { connectDB } from "@/lib/db";
 import UserSchema from "@/models/UserSchema";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { NextResponse } from "next/server";
 
 export async function POST(req) {
   try {
     await connectDB();
 
+    const origin = req.headers.get("origin") || "*";
+
     // Parse JSON body
     const { name, email, password } = await req.json();
-    console.log("Signup data:", name, email, password);
     if (!name || !email || !password) {
-      return NextResponse.json({ message: "All fields are required" }, { status: 400 });
+      return new Response(JSON.stringify({ message: "All fields are required" }), {
+        status: 400,
+        headers: {
+          "Access-Control-Allow-Origin": origin,
+          "Access-Control-Allow-Credentials": "true",
+        }
+      });
     }
-
 
     // Check if user exists
     const exist = await UserSchema.findOne({ email });
     if (exist) {
-      return NextResponse.json({ message: "Email already exists" }, { status: 400 });
+      return new Response(JSON.stringify({ message: "Email already exists" }), {
+        status: 400,
+        headers: {
+          "Access-Control-Allow-Origin": origin,
+          "Access-Control-Allow-Credentials": "true",
+        }
+      });
     }
 
     // Hash password
@@ -30,7 +42,7 @@ export async function POST(req) {
       name,
       email,
       password: hash,
-      role: "member", // default role
+      role: "member",
     });
 
     // Generate JWT token
@@ -40,7 +52,7 @@ export async function POST(req) {
       { expiresIn: "7d" }
     );
 
-    // Create response
+    // Create response object
     const response = NextResponse.json({
       message: "User registered successfully",
       user: {
@@ -52,21 +64,41 @@ export async function POST(req) {
       token,
     });
 
-    // Set HTTP-only cookie
-    response.cookies.set({
-      name: "token",
-      value: token,
+    // Set cookie for cross-origin usage
+    response.cookies.set("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      secure: true,       // REQUIRED for cross-origin cookies
+      sameSite: "none",   // REQUIRED for cross-origin cookies
       path: "/",
-      maxAge: 7 * 24 * 60 * 60, // 7 days
+      maxAge: 60 * 60 * 24 * 7,
     });
+
+    // Set CORS headers
+    response.headers.set("Access-Control-Allow-Origin", origin);
+    response.headers.set("Access-Control-Allow-Credentials", "true");
 
     return response;
 
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ message: error.message || "Server error" }, { status: 500 });
+    return new Response(JSON.stringify({ message: error.message || "Server error" }), {
+      status: 500,
+      headers: { "Access-Control-Allow-Origin": "*" },
+    });
   }
+}
+
+// ✅ Handle CORS Preflight
+export async function OPTIONS(req) {
+  const origin = req.headers.get("origin") || "*";
+
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": origin,
+      "Access-Control-Allow-Credentials": "true",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    },
+  });
 }
