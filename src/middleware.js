@@ -4,23 +4,37 @@ export function middleware(req) {
   const token = req.cookies.get("token")?.value;
   const pathname = req.nextUrl.pathname;
 
-  // Pages that do not require authentication
+  const origin = req.headers.get("origin");
+  const response = NextResponse.next();
+
+  // === ✅ Allow Any Origin (but still support cookies) ===
+  if (origin) {
+    response.headers.set("Access-Control-Allow-Origin", origin);
+  }
+
+  response.headers.set("Access-Control-Allow-Credentials", "true");
+  response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+  // Handle preflight request
+  if (req.method === "OPTIONS") {
+    return new NextResponse(null, { status: 204, headers: response.headers });
+  }
+
+  // === ✅ Auth Control ===
   const publicPaths = ["/login", "/signup"];
 
-  // If user is NOT logged in and trying to access protected page → redirect to login
   if (!token && !publicPaths.includes(pathname)) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // If user IS logged in and trying to visit login or signup → redirect to home
   if (token && publicPaths.includes(pathname)) {
     return NextResponse.redirect(new URL("/", req.url));
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {
   matcher: ["/((?!_next|favicon.ico|public|api).*)"],
 };
-
